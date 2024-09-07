@@ -8,7 +8,7 @@ module FileWatcher
     match_option : File::MatchOptions = File::MatchOptions.glob_default,
     follow_symlinks : Bool = false,
     interval : Time::Span = 1.second,
-    &block : Event -> _
+    & : Event -> _
   ) : Nil
     watch([*patterns] of String | Path, match_option: match_option, follow_symlinks: follow_symlinks, interval: interval) do |event|
       yield event
@@ -20,7 +20,7 @@ module FileWatcher
     match_option : File::MatchOptions = File::MatchOptions.glob_default,
     follow_symlinks : Bool = false,
     interval : Time::Span = 1.second,
-    &block : Event -> _
+    & : Event -> _
   ) : Nil
     Watcher.new(
       patterns,

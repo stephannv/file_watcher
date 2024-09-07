@@ -1,4 +1,7 @@
-# file_watcher
+# FileWatcher
+
+<a href="https://github.com/stephannv/file_watcher/actions/workflows/ci.yml"><img src="https://github.com/stephannv/file_watcher/actions/workflows/ci.yml/badge.svg" alt="Tests"></a>
+![0 dependencies](https://img.shields.io/badge/0-dependencies-blue)
 
 Listen to file modifications using polling and notifies you about the changes. Pure Crystal implementation, no dependencies.
 

@@ -5,7 +5,7 @@ module FileWatcher
   class Watcher
     getter patterns : Enumerable(String | Path)
     getter match_option : File::MatchOptions
-    getter follow_symlinks : Bool
+    getter? follow_symlinks : Bool
     getter cache : Hash(String, Snapshot) = Hash(String, Snapshot).new
     getter interval : Time::Span
 
@@ -30,7 +30,7 @@ module FileWatcher
           end
         end
 
-        cache.reject! do |path, snapshot|
+        cache.reject! do |path, _snapshot|
           unless File.exists?(path)
             yield Event.new(path, :deleted)
             true
@@ -48,7 +48,7 @@ module FileWatcher
     end
 
     private def get_paths : Array(String)
-      Dir.glob(@patterns, match_option, follow_symlinks)
+      Dir.glob(@patterns, match_option, follow_symlinks?)
     end
   end
 end
