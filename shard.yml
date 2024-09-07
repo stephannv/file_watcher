@@ -1,0 +1,9 @@
+name: file_watcher
+version: 0.1.0
+
+authors:
+  - stephann <3025661+stephannv@users.noreply.github.com>
+
+crystal: '>= 1.13.2'
+
+license: MIT
