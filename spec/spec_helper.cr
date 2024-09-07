@@ -27,5 +27,5 @@ def create_file(file_name : String | Path)
 
   FileUtils.mkdir_p(dir) unless Dir.exists?(dir)
 
-  File.write(file_name, "")
+  File.write(file_name, "hello")
 end

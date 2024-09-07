@@ -1,12 +1,12 @@
 require "./spec_helper"
 
-TMP_DIR = "spec/tmp"
+TMP_DIR = File.join("spec", "tmp")
 
 describe FileWatcher do
   around_each do |example|
     FileUtils.rm_rf(TMP_DIR)
 
-    with_timeout(2.second) do
+    with_timeout(1.second) do
       example.run
     end
   rescue TimeoutError
@@ -21,7 +21,9 @@ describe FileWatcher do
       create_file(File.join(TMP_DIR, "example.txt"))
     end
 
-    FileWatcher.watch(File.join(TMP_DIR, "**", "*"), interval: 0.01.seconds) do |event|
+    pattern : String = Path[TMP_DIR, "**", "*"].to_posix.to_s
+
+    FileWatcher.watch(pattern, interval: 0.01.seconds) do |event|
       event.type.added?.should be_true
       event.path.should eq File.join(TMP_DIR, "example.txt")
       break
@@ -35,7 +37,9 @@ describe FileWatcher do
       File.delete(File.join(TMP_DIR, "example.txt"))
     end
 
-    FileWatcher.watch(File.join(TMP_DIR, "**", "*"), interval: 0.01.seconds) do |event|
+    pattern : String = Path[TMP_DIR, "**", "*"].to_posix.to_s
+
+    FileWatcher.watch(pattern, interval: 0.01.seconds) do |event|
       event.type.deleted?.should be_true
       event.path.should eq File.join(TMP_DIR, "example.txt")
       break
@@ -49,7 +53,9 @@ describe FileWatcher do
       FileUtils.touch(File.join(TMP_DIR, "example.txt"))
     end
 
-    FileWatcher.watch(File.join(TMP_DIR, "**", "*"), interval: 0.01.seconds) do |event|
+    pattern : String = Path[TMP_DIR, "**", "*"].to_posix.to_s
+
+    FileWatcher.watch(pattern, interval: 0.01.seconds) do |event|
       event.type.changed?.should be_true
       event.path.should eq File.join(TMP_DIR, "example.txt")
       break
@@ -63,7 +69,9 @@ describe FileWatcher do
       create_file(File.join(TMP_DIR, "text.txt"))
     end
 
-    FileWatcher.watch(File.join(TMP_DIR, "**", "*.json"), interval: 0.01.seconds) do |event|
+    pattern : String = Path[TMP_DIR, "**", "*.json"].to_posix.to_s
+
+    FileWatcher.watch(pattern, interval: 0.01.seconds) do |event|
       event.type.added?.should be_true
       event.path.should eq File.join(TMP_DIR, "data.json")
       break
@@ -75,7 +83,9 @@ describe FileWatcher do
       create_file(File.join(TMP_DIR, "example.txt"))
     end
 
-    FileWatcher.watch(Path[TMP_DIR, "**", "*"], interval: 0.01.seconds) do |event|
+    pattern : Path = Path[TMP_DIR, "**", "*"].to_posix
+
+    FileWatcher.watch(pattern, interval: 0.01.seconds) do |event|
       event.type.added?.should be_true
       event.path.should eq File.join(TMP_DIR, "example.txt")
       break
@@ -90,18 +100,17 @@ describe FileWatcher do
 
     events = [] of FileWatcher::Event
 
-    FileWatcher.watch(
-      Path[TMP_DIR, "folder_a", "*.txt"],
-      File.join(TMP_DIR, "folder_b/*.txt"),
-      interval: 0.01.seconds
-    ) do |event|
+    pattern_a : Path = Path[TMP_DIR, "folder_a", "*.txt"].to_posix
+    pattern_b : String = Path[TMP_DIR, "folder_b", "*.txt"].to_posix.to_s
+
+    FileWatcher.watch(pattern_a, pattern_b, interval: 0.01.seconds) do |event|
       events << event
 
       break if events.size == 2
     end
 
-    events.should contain FileWatcher::Event.new(File.join(TMP_DIR, "folder_a/foo.txt"), :added)
-    events.should contain FileWatcher::Event.new(File.join(TMP_DIR, "folder_b/bar.txt"), :added)
+    events.should contain FileWatcher::Event.new(File.join(TMP_DIR, "folder_a", "foo.txt"), :added)
+    events.should contain FileWatcher::Event.new(File.join(TMP_DIR, "folder_b", "bar.txt"), :added)
   end
 
   it "accepts match_option" do
@@ -109,11 +118,9 @@ describe FileWatcher do
       create_file(File.join(TMP_DIR, ".dotfile"))
     end
 
-    FileWatcher.watch(
-      Path[TMP_DIR, "**", "*"],
-      interval: 0.01.seconds,
-      match_option: File::MatchOptions::DotFiles
-    ) do |event|
+    pattern : String = Path[TMP_DIR, "**", "*"].to_posix.to_s
+
+    FileWatcher.watch(pattern, interval: 0.01.seconds, match_option: File::MatchOptions::DotFiles) do |event|
       event.type.added?.should be_true
       event.path.should eq File.join(TMP_DIR, ".dotfile")
       break
@@ -128,12 +135,17 @@ describe FileWatcher do
     end
 
     spawn do
-      create_file(File.join(TMP_DIR, "original/example.txt"))
+      create_file(File.join(TMP_DIR, "original", "example.txt"))
     end
 
-    FileWatcher.watch("spec/tmp/**/*.txt", interval: 0.01.seconds, follow_symlinks: true) do |event|
+    pattern : String = Path[TMP_DIR, "**", "*.txt"].to_posix.to_s
+
+    FileWatcher.watch(pattern, interval: 0.01.seconds, follow_symlinks: true) do |event|
+      # ignores if original file event is emitted first
+      next if event.path == File.join(TMP_DIR, "original", "example.txt")
+
       event.type.added?.should be_true
-      event.path.should eq File.join(TMP_DIR, "symlink/example.txt")
+      event.path.should eq File.join(TMP_DIR, "symlink", "example.txt")
       break
     end
   end
@@ -143,14 +155,16 @@ describe FileWatcher do
       create_file(File.join(TMP_DIR, "example.txt"))
     end
 
+    pattern : String = Path[TMP_DIR, "**", "*"].to_posix.to_s
+
     started_at = Time.utc
 
-    FileWatcher.watch(File.join(TMP_DIR, "**", "*"), interval: 1.second) do |event|
+    FileWatcher.watch(pattern, interval: 0.5.seconds) do |event|
       event.type.added?.should be_true
       event.path.should eq File.join(TMP_DIR, "example.txt")
 
       now = Time.utc
-      now.should be_close(started_at + 1.second, 0.1.seconds)
+      now.should be_close(started_at + 0.5.seconds, 0.1.seconds)
 
       break
     end
